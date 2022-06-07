@@ -1,7 +1,7 @@
-# rayWInterference
+# RayWInterference
 This is the guide on how to run and use this program to return SNR values, open street map visual, figure with data points
 
-## dependencies
+## Dependencies
 This program uses Matlab, cpp, and python
 
 ## Steps to run:
