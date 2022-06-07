@@ -1,10 +1,10 @@
 # rayWInterference
 This is the guide on how to run and use this program to return SNR values, open street map visual, figure with data points
 
-# dependencies
+## dependencies
 This program uses Matlab, cpp, and python
 
-Steps to run:
+## Steps to run:
 1. Pick a rectangular region you want to simulate. Record the upper left point and bottom left coordinates for your own reference.
 2. Next, you will need to find the txlats and txlons of all the sites in that area. To do this, go to range.cpp and fill in the area at the top where it says `double latR[2]` and `double lonR[2]`. Make sure to 
 3. Paste the result in rayWInterference.m in the first %---- area.
