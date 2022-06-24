@@ -8,3 +8,8 @@ This program uses Matlab, cpp, and python
 0. export osm file of location you want to simulate in `export.osm`
 1. run command `python3 -u trial.py -i range2 > rayWInterference.m`
 2. run `rayWInterference.m` with Matlab
+
+
+## Side effects
+0. Creates temp.txt to store street names with lat and long
+1. Creates alldata.txt which the matlab file needs to run
