@@ -105,7 +105,7 @@ latitude = zeros(b,1);
 longitude = zeros(b,1);
 connectedSNR2 = zeros(b,1);
 
-fileID = fopen('section14.txt','w');
+fileID = fopen('section.txt','w');
 
 for cnt = 1 : sum(rxNbr(1:lineNbr))
     fprintf(fileID,'%f %f %f %f %f %f\n', rxLats(cnt), rxLons(cnt), connectedSNR(cnt), connectedSINR(cnt), connectedSINR0(cnt), connectedSINR15(cnt));
