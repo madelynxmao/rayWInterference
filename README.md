@@ -13,5 +13,5 @@ This program uses Matlab, cpp, and python
 ## Side effects
 0. Creates temp.txt to store street names with lat and long
 1. Creates alldata.txt which the matlab file needs to run
-2. The matlab program, when run with matlab, will create a text file with the SNR values called `section14.txt`
+2. The matlab program, when run with matlab, will create a text file with the SNR values called `section.txt`
 3. The matlab program will also launch a visual representation of the strength of the SNR
