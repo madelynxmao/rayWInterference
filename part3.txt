@@ -1,0 +1,173 @@
+%-----------
+
+rxRange = table2array(readtable('data.txt'));
+
+rxLocation = 0 : sum(rxSpanDis(1:lineNbr))/(sum(rxNbr(1:lineNbr)) - 1) : sum(rxSpanDis(1:lineNbr));
+rxLats = [];
+rxLons = [];
+for cnt = 1 : lineNbr
+    rxLats = [rxLats, rxRange(cnt, 1) : (rxRange(cnt, 3) - rxRange(cnt, 1)) / (rxNbr(cnt)-1): rxRange(cnt, 3)];
+    rxLons = [rxLons, rxRange(cnt, 2) : (rxRange(cnt, 4) - rxRange(cnt, 2)) / (rxNbr(cnt)-1): rxRange(cnt, 4)];
+end
+
+
+% rxLats = (rxLatR(1) : (rxLatR(2) - rxLatR(1)) / (rxNbr - 1) : rxLatR(2));
+% rxLons = (rxLonR(1) : (rxLonR(2) - rxLonR(1)) / (rxNbr - 1) : rxLonR(2));
+
+rxSites = rxsite("Name","User locations", ...
+    "Latitude", rxLats, ...
+    "Longitude", rxLons, ...
+    "AntennaHeight", rxHeight);
+%show(rxSites);
+
+
+%% run raytracing
+rtpm.MaxNumReflections = 0;
+rays = raytrace(txSites, rxSites, rtpm);
+connectedRay = cell(1, sum(rxNbr(1:lineNbr)));
+connectedSNR = zeros(1, sum(rxNbr(1:lineNbr)));
+connectedSINR = zeros(1, sum(rxNbr(1:lineNbr)));
+
+connectedSitesLoc = zeros(sum(rxNbr(1:lineNbr)), 2);
+
+sPower = zeros(1, sum(rxNbr(1:lineNbr)));
+iPower = zeros(1, sum(rxNbr(1:lineNbr)));
+nPower = GaussianNoisePower(sigma, bandwidth);
+iCount = zeros(1, sum(rxNbr(1:lineNbr)));
+
+iPower0 = zeros(1, sum(rxNbr(1:lineNbr)));
+iPower15 = zeros(1, sum(rxNbr(1:lineNbr)));
+connectedSINR0 = zeros(1, sum(rxNbr(1:lineNbr)));
+connectedSINR15 = zeros(1, sum(rxNbr(1:lineNbr)));
+
+%% find nearest BS and calculate SNR
+for cnt1 = 1 : sum(rxNbr(1:lineNbr))
+    minDis = 9e9;
+    
+    for cnt2 = 1 : length(txLats)
+        tempRay = rays(cnt2, cnt1);
+        tempRay = tempRay{1};
+        if (length(tempRay) == 1) && (tempRay.PropagationDistance < minDis)
+            minDis = tempRay.PropagationDistance;
+            connectedRay{cnt1} = tempRay;
+        end
+    end
+    for cnt2 = 1 : length(txLats)
+        tempRay = rays(cnt2, cnt1);
+        tempRay = tempRay{1};
+        if (length(tempRay) == 1) && (tempRay.PropagationDistance ~= minDis) && (tempRay.PropagationDistance < R) && (tempRay.PropagationDistance > r)
+            iCount(cnt1) = iCount(cnt1) + 1;
+            iPower(cnt1) = iPower(cnt1) + InterferencePower(tempRay.PropagationDistance, Nt, d_to_lambda, alpha, beta, M, Pt);
+        end
+
+        if (length(tempRay) == 1) && (tempRay.PropagationDistance ~= minDis) && (tempRay.PropagationDistance < R) && (tempRay.PropagationDistance > 0)
+            iPower0(cnt1) = iPower0(cnt1) + InterferencePower(tempRay.PropagationDistance, Nt, d_to_lambda, alpha, beta, M, Pt);
+        end
+        if (length(tempRay) == 1) && (tempRay.PropagationDistance ~= minDis) && (tempRay.PropagationDistance < R) && (tempRay.PropagationDistance > 15)
+            iPower15(cnt1) = iPower15(cnt1) + InterferencePower(tempRay.PropagationDistance, Nt, d_to_lambda, alpha, beta, M, Pt);
+        end
+    end
+    connectedSNR(cnt1) = SNR(minDis, alpha, beta);
+    sPower(cnt1) = SignalPower(minDis, Nt, alpha, beta, M, Pt);
+    connectedSINR(cnt1) = 10 * log10(sPower(cnt1)/(nPower + iPower(cnt1))) + TxRxGain;
+    
+    connectedSINR0(cnt1) = 10 * log10(sPower(cnt1)/(nPower + iPower0(cnt1))) + TxRxGain;
+    connectedSINR15(cnt1) = 10 * log10(sPower(cnt1)/(nPower + iPower15(cnt1))) + TxRxGain;
+end
+
+for cnt1 = 1 : sum(rxNbr(1:lineNbr))
+    connectedSitesLoc(cnt1, 1) = connectedRay{cnt1}.TransmitterLocation(1);
+    connectedSitesLoc(cnt1, 2) = connectedRay{cnt1}.TransmitterLocation(2);
+    %plot(connectedRay{cnt1})
+end
+
+connectedSitesCnt = length(unique(connectedSitesLoc, 'row'));
+
+%% plot SNR curve
+%figure(1)
+%hold on
+%plot(rxLocation, connectedSNR, 'LineWidth', 2);
+%plot(rxLocation, connectedSINR, '-.', 'LineWidth', 1.5);
+%plot(rxLocation, connectedSINR15, '--', 'LineWidth', 1.5);
+%plot(rxLocation, connectedSINR0, '--', 'LineWidth', 1.5);
+%for cnt = 1:lineNbr
+%    xline(sum(rxSpanDis(1:cnt)))
+%end
+%hold off
+%ylabel('SNR');
+%xlabel('Distance/m');
+%legend('No Interference', 'With Interference, r=30', 'With Interference, r=15', 'With Interference, r=0');
+% legend('Measured model', "Theoretical model");
+
+%%
+b = sum(rxNbr(1:lineNbr));
+latitude = zeros(b,1);
+longitude = zeros(b,1);
+connectedSNR2 = zeros(b,1);
+
+fileID = fopen('section14.txt','w');
+
+for cnt = 1 : sum(rxNbr(1:lineNbr))
+    fprintf(fileID,'%f %f %f %f %f %f\n', rxLats(cnt), rxLons(cnt), connectedSNR(cnt), connectedSINR(cnt), connectedSINR0(cnt), connectedSINR15(cnt));
+    latitude(cnt) = rxLats(cnt);
+    longitude(cnt) = rxLons(cnt);
+    connectedSNR2(cnt) = connectedSNR(cnt);
+end
+
+fclose(fileID);
+
+%% color streets
+
+tbl = table(latitude, longitude, connectedSNR2);
+fprintf("start: %d, %d, %d %d \n", size(latitude), size(longitude), size(connectedSNR2), size(tbl));
+
+pd = propagationData(tbl);
+
+legendTitle = "Signal" + newline + "Strength" + newline + "(dB)";
+
+c = jet;
+c = flipud(c);
+plot(pd, "LegendTitle", legendTitle, "Colormap", c);
+
+%% path model
+% path gain value
+function pg = PG(d, alpha, beta)
+    % Int-LOS result
+    n = alpha;
+    b = 10 * log10(beta); %dB
+    %theta = 4.5; %dB
+    pg = 10*n*log10(d)+b;
+end
+
+% SNR
+function snr = SNR(d, alpha, beta)
+    Ptx = 28; % tx power
+    Gtx = 23; % tx gain
+    PGmed = PG(d, alpha, beta); % path gain
+    Grx = 11; % rx gain
+    Pnf = -174 + 10*log10(800e6)+10; % 800 MHz bandwidth
+    snr = Ptx + Gtx + PGmed + Grx - Pnf;
+end
+
+function ip = InterferencePower(d, Nt, d_to_lambda, alpha, beta, M, Pt)
+    [m, v] = gamstat(M, 1/M); % mean value of rho^2
+    persistent x0; 
+    persistent It0;
+    if isempty(x0)
+        x0 = pi * Nt * d_to_lambda;
+        It0 = (2 * sinint(2 * x0) + cos(2 * x0) - 1) / (x0 * x0); % average value of sin^2(x)/x^2
+    elseif x0 ~= pi * Nt * d_to_lambda
+        x0 = pi * Nt * d_to_lambda;
+        It0 = (2 * sinint(2 * x0) + cos(2 * x0) - 1) / (x0 * x0);
+    end
+    ip = beta * Nt * Pt * It0 * (d^alpha) * m;
+end
+
+function np = GaussianNoisePower(sigma, bandwidth)
+    np = 10^(-17.4 + log10(bandwidth) + sigma / 10);
+end
+
+function sp = SignalPower(d, Nt, alpha, beta, M, Pt)
+    [m, v] = gamstat(M, 1/M); % mean value of rho^2
+    sp = beta * Nt * Pt * (d^alpha) * m;
+end

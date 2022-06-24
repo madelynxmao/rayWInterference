@@ -1,0 +1,25 @@
+clear;
+%%
+Nt = 64; % tx antenna elements number
+d_to_lambda = 1/4; % tx antenna distance
+alpha = -3.1; % path loss parameter
+beta = 5.75e-5; % path loss parameter
+bandwidth = 800e6; % bandwidth of channel
+M = 3; % parameter of Nakagami-M model
+r = 30; % range of interference
+R = 150; % range of interference
+
+Pt = 631; % tx transmit power 28dBm
+TxRxGain = 16; % 16 dB for tx rx antenna gain
+sigma = 10; % noise figure
+
+txHeight = 5;
+rxHeight = 1.6;
+
+%% read map
+viewer = siteviewer("Buildings","measuredArea.osm","Basemap","openstreetmap");
+
+%% define tx
+clearMap(viewer);
+% t-mobile LTE sites location
+%-----------
